@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -71,14 +72,20 @@ func StreamLogs(w http.ResponseWriter, namespace, podName string) error {
 	}
 	defer stream.Close()
 
+	// write the logs to the client
+	return forwardStream(stream, w)
+}
+
+// forwardStream reads the content from stream and forwards it to the
+// ResponseWriter at a buffer rate of 1MB per flush
+func forwardStream(stream io.ReadCloser, w http.ResponseWriter) error {
 	// flush the last fetched data to the request
 	f, ok := w.(http.Flusher)
 	if !ok {
 		return errors.New("streaming unsupported")
 	}
 
-	// write the logs to the client
-	buf := make([]byte, 1<<10)
+	buf := make([]byte, 1<<10) // todo: magic number can be exported to constants
 	for {
 		n, err := stream.Read(buf)
 		if err != nil {
@@ -90,9 +97,10 @@ func StreamLogs(w http.ResponseWriter, namespace, podName string) error {
 			return err
 		}
 	}
+	return nil
 }
 
-func ExtractFields(pods []corev1.Pod) (ret []PodResponse) {
+func FilterPodFields(pods []corev1.Pod) (ret []PodResponse) {
 	for _, pod := range pods {
 		ret = append(ret, PodResponse{
 			Name:      pod.Name,

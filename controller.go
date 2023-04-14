@@ -32,7 +32,7 @@ func HandleListPods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonPods, err := json.Marshal(ExtractFields(pods))
+	jsonPods, err := json.Marshal(FilterPodFields(pods))
 	if err != nil {
 		http.Error(w, wrap(err), http.StatusInternalServerError)
 		return
