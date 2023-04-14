@@ -42,6 +42,18 @@ func HandleListPods(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
+	var getLogsParams GetLogsRequest
+	err := json.NewDecoder(r.Body).Decode(&getLogsParams)
+	if err != nil {
+		http.Error(w, wrap(err), http.StatusBadRequest)
+		return
+	}
+
+	err = StreamLogs(w, getLogsParams.Namespace, getLogsParams.PodName)
+	if err != nil {
+		http.Error(w, wrap(err), http.StatusInternalServerError)
+		return
+	}
 }
 
 // getNamespace returns the input namespace if it is set,

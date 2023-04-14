@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
@@ -51,8 +53,43 @@ func ListPods(namespace string) ([]corev1.Pod, error) {
 	return pods.Items, nil
 }
 
-func GetLogs(podName string) (string, error) {
-	return "", nil
+func StreamLogs(w http.ResponseWriter, namespace, podName string) error {
+	clientset, err := getClientSet()
+	if err != nil {
+		return err
+	}
+
+	// create a request for the logs of the specified container
+	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
+		Follow: true,
+	})
+
+	// stream the logs
+	stream, err := req.Stream(context.Background())
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	// flush the last fetched data to the request
+	f, ok := w.(http.Flusher)
+	if !ok {
+		return errors.New("streaming unsupported")
+	}
+
+	// write the logs to the client
+	buf := make([]byte, 1<<10)
+	for {
+		n, err := stream.Read(buf)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(buf[0:n])
+		f.Flush()
+		if err != nil {
+			return err
+		}
+	}
 }
 
 func ExtractFields(pods []corev1.Pod) (ret []PodResponse) {
