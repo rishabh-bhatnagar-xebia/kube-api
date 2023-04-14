@@ -8,11 +8,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
-func CreatePod(namespace, imageName, podName string) error {
+func (s *Server) CreatePod(namespace, imageName, podName string) error {
 	if len(imageName) == 0 {
 		return errors.New("image_name cannot be empty")
 	}
@@ -21,12 +19,7 @@ func CreatePod(namespace, imageName, podName string) error {
 		return errors.New("pod_name cannot be empty")
 	}
 
-	clientset, err := getClientSet()
-	if err != nil {
-		return err
-	}
-
-	_, err = clientset.CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
+	_, err := s.clientset.CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: namespace,
@@ -44,14 +37,9 @@ func CreatePod(namespace, imageName, podName string) error {
 	return err
 }
 
-func ListPods(namespace string) ([]corev1.Pod, error) {
-	clientset, err := getClientSet()
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Server) ListPods(namespace string) ([]corev1.Pod, error) {
 	// List all pods in the default namespace
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+	pods, err := s.clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -59,18 +47,13 @@ func ListPods(namespace string) ([]corev1.Pod, error) {
 	return pods.Items, nil
 }
 
-func StreamLogs(w http.ResponseWriter, namespace, podName string) error {
+func (s *Server) StreamLogs(w http.ResponseWriter, namespace, podName string) error {
 	if len(podName) == 0 {
 		return errors.New("pod_name cannot be empty")
 	}
 
-	clientset, err := getClientSet()
-	if err != nil {
-		return err
-	}
-
 	// create a request for the logs of the specified container
-	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
+	req := s.clientset.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
 		Follow: true,
 	})
 
@@ -106,23 +89,4 @@ func forwardStream(stream io.ReadCloser, w http.ResponseWriter) error {
 			return err
 		}
 	}
-}
-
-func getClientSet() (*kubernetes.Clientset, error) {
-	// Load the Kubernetes configuration from the default location
-	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
-	)
-	config, err := kubeconfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a Kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return clientset, nil
 }

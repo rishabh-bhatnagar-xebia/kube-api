@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCreatePod(w http.ResponseWriter, r *http.Request) {
 	var createParams CreatePodRequest
 	err := json.NewDecoder(r.Body).Decode(&createParams)
 	if err != nil {
@@ -13,7 +13,7 @@ func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = CreatePod(getNamespace(createParams.Namespace), createParams.Image, createParams.PodName)
+	err = s.CreatePod(getNamespace(createParams.Namespace), createParams.Image, createParams.PodName)
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
@@ -22,11 +22,11 @@ func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func HandleListPods(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListPods(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ns := r.URL.Query().Get(HTTP_PARAM_NAMESPACE)
-	pods, err := ListPods(getNamespace(ns))
+	pods, err := s.ListPods(getNamespace(ns))
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
@@ -41,7 +41,7 @@ func HandleListPods(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonPods)
 }
 
-func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleGetLogs(w http.ResponseWriter, r *http.Request) {
 	var getLogsParams GetLogsRequest
 	err := json.NewDecoder(r.Body).Decode(&getLogsParams)
 	if err != nil {
@@ -49,18 +49,9 @@ func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = StreamLogs(w, getNamespace(getLogsParams.Namespace), getLogsParams.PodName)
+	err = s.StreamLogs(w, getNamespace(getLogsParams.Namespace), getLogsParams.PodName)
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
 	}
-}
-
-// getNamespace returns the input namespace if it is set,
-// otherwise returns a default one
-func getNamespace(namespace string) string {
-	if len(namespace) == 0 {
-		return "default"
-	}
-	return namespace
 }

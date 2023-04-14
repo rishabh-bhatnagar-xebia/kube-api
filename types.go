@@ -1,6 +1,18 @@
 package main
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"net/http"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+)
+
+// Server holds all the config, resources and handlers required to run/serve
+// a web-server and handle all the endpoints
+type Server struct {
+	router    *http.ServeMux
+	clientset *kubernetes.Clientset
+}
 
 // PodResponse is a filtered view of Pod information returned by the
 // kubernetes api for the user

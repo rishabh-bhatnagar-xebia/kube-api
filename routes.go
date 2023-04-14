@@ -2,8 +2,12 @@ package main
 
 import "net/http"
 
-func AddRoutes(router *http.ServeMux) {
-	router.HandleFunc("/create", HandleCreatePod)
-	router.HandleFunc("/list", HandleListPods)
-	router.HandleFunc("/logs", HandleGetLogs)
+func (s *Server) RegisterRoutes() {
+	s.router.HandleFunc("/create", s.handleCreatePod)
+	s.router.HandleFunc("/list", s.handleListPods)
+	s.router.HandleFunc("/logs", s.handleGetLogs)
+}
+
+func (s *Server) Serve(port string) error {
+	return http.ListenAndServe(":"+port, s.router)
 }
