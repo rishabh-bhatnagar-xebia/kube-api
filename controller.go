@@ -2,21 +2,18 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"log"
 	"net/http"
 )
 
 func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
-	imageName, err := readImageName(r)
+	var createParams CreatePodRequest
+	err := json.NewDecoder(r.Body).Decode(&createParams)
 	if err != nil {
 		http.Error(w, wrap(err), http.StatusBadRequest)
 		return
 	}
-	namespace := readNamespace(r)
-	log.Println("creating the pod in the default namespace")
 
-	err = CreatePod(namespace, imageName)
+	err = CreatePod(getNamespace(createParams.Namespace), createParams.Image)
 	if err != nil {
 		http.Error(w, wrap(err), http.StatusInternalServerError)
 		return
@@ -26,9 +23,10 @@ func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleListPods(w http.ResponseWriter, r *http.Request) {
-	setJson(w)
+	w.Header().Set("Content-Type", "application/json")
 
-	pods, err := ListPods(readNamespace(r))
+	ns := r.URL.Query().Get(HTTP_PARAM_NAMESPACE)
+	pods, err := ListPods(getNamespace(ns))
 	if err != nil {
 		http.Error(w, wrap(err), http.StatusInternalServerError)
 		return
@@ -46,20 +44,11 @@ func HandleListPods(w http.ResponseWriter, r *http.Request) {
 func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
 }
 
-func setJson(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-}
-
-func readNamespace(r *http.Request) string {
-	if r.URL.Query().Has(HTTP_PARAM_NAMESPACE) {
-		return r.URL.Query().Get(HTTP_PARAM_NAMESPACE)
+// getNamespace returns the input namespace if it is set,
+// otherwise returns a default one
+func getNamespace(namespace string) string {
+	if len(namespace) == 0 {
+		return "default"
 	}
-	return "default"
-}
-
-func readImageName(r *http.Request) (string, error) {
-	if r.URL.Query().Has(HTTP_PARAM_IMAGE) {
-		return r.URL.Query().Get(HTTP_PARAM_IMAGE), nil
-	}
-	return "", errors.New("missing image name")
+	return namespace
 }

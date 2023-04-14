@@ -12,13 +12,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type PodResponse struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	UID       string            `json:"uid"`
-	Labels    map[string]string `json:"labels"`
-}
-
 func CreatePod(namespace, imageName string) error {
 	clientset, err := getClientSet()
 	if err != nil {
@@ -52,7 +45,7 @@ func ListPods(namespace string) ([]corev1.Pod, error) {
 	// List all pods in the default namespace
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	return pods.Items, nil
