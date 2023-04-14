@@ -2,7 +2,7 @@
 ---
 
 A WebApi Wrapper that helps you in executing following operations of kubernetes:
-  - Run a Image
+  - Create a pod with a given image
   - Get logs of any running pod
   - List All the available pods
 
