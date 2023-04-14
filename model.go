@@ -97,19 +97,6 @@ func forwardStream(stream io.ReadCloser, w http.ResponseWriter) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func FilterPodFields(pods []corev1.Pod) (ret []PodResponse) {
-	for _, pod := range pods {
-		ret = append(ret, PodResponse{
-			Name:      pod.Name,
-			Namespace: pod.Namespace,
-			UID:       string(pod.UID),
-			Labels:    pod.Labels,
-		})
-	}
-	return
 }
 
 func getClientSet() (*kubernetes.Clientset, error) {

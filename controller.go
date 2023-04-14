@@ -9,13 +9,13 @@ func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
 	var createParams CreatePodRequest
 	err := json.NewDecoder(r.Body).Decode(&createParams)
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusBadRequest)
+		http.Error(w, Wrap(err), http.StatusBadRequest)
 		return
 	}
 
 	err = CreatePod(getNamespace(createParams.Namespace), createParams.Image)
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusInternalServerError)
+		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
 	}
 
@@ -28,13 +28,13 @@ func HandleListPods(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get(HTTP_PARAM_NAMESPACE)
 	pods, err := ListPods(getNamespace(ns))
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusInternalServerError)
+		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
 	}
 
 	jsonPods, err := json.Marshal(FilterPodFields(pods))
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusInternalServerError)
+		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
 	}
 
@@ -45,13 +45,13 @@ func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
 	var getLogsParams GetLogsRequest
 	err := json.NewDecoder(r.Body).Decode(&getLogsParams)
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusBadRequest)
+		http.Error(w, Wrap(err), http.StatusBadRequest)
 		return
 	}
 
 	err = StreamLogs(w, getLogsParams.Namespace, getLogsParams.PodName)
 	if err != nil {
-		http.Error(w, wrap(err), http.StatusInternalServerError)
+		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
 	}
 }
