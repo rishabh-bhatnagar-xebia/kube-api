@@ -16,6 +16,10 @@ import (
 )
 
 func CreatePod(namespace, imageName string) error {
+	if len(imageName) == 0 {
+		return errors.New("undefined image name")
+	}
+
 	clientset, err := getClientSet()
 	if err != nil {
 		return err
