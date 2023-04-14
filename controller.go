@@ -13,7 +13,7 @@ func HandleCreatePod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = CreatePod(getNamespace(createParams.Namespace), createParams.Image)
+	err = CreatePod(getNamespace(createParams.Namespace), createParams.Image, createParams.PodName)
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func HandleGetLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = StreamLogs(w, getLogsParams.Namespace, getLogsParams.PodName)
+	err = StreamLogs(w, getNamespace(getLogsParams.Namespace), getLogsParams.PodName)
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return

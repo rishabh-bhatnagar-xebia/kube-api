@@ -28,11 +28,22 @@ func Wrap(err error) string {
 
 func FilterPodFields(pods []corev1.Pod) (ret []PodResponse) {
 	for _, pod := range pods {
+		var status corev1.ContainerStatus
+		if n := len(pod.Status.ContainerStatuses); n != 0 {
+			status = pod.Status.ContainerStatuses[n-1]
+		}
 		ret = append(ret, PodResponse{
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 			UID:       string(pod.UID),
 			Labels:    pod.Labels,
+			Status: PodStatus{
+				State:        status.State,
+				Ready:        status.Ready,
+				RestartCount: status.RestartCount,
+				Image:        status.Image,
+				Started:      status.Started,
+			},
 		})
 	}
 	return

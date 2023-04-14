@@ -1,5 +1,7 @@
 package main
 
+import corev1 "k8s.io/api/core/v1"
+
 // PodResponse is a filtered view of Pod information returned by the
 // kubernetes api for the user
 type PodResponse struct {
@@ -7,12 +9,22 @@ type PodResponse struct {
 	Namespace string            `json:"namespace"`
 	UID       string            `json:"uid"`
 	Labels    map[string]string `json:"labels"`
+	Status    PodStatus         `json:"status"`
+}
+
+type PodStatus struct {
+	State        corev1.ContainerState `json:"state"`
+	Ready        bool                  `json:"ready"`
+	RestartCount int32                 `json:"restart-count"`
+	Image        string                `json:"image"`
+	Started      *bool                 `json:"started"`
 }
 
 // CreatePodRequest is the input user must send for /create endpoint
 type CreatePodRequest struct {
 	Image     string `json:"image"`
 	Namespace string `json:"namespace"`
+	PodName   string `json:"pod_name"`
 }
 
 // GetLogsRequest is the input user must send for getting logs of a container

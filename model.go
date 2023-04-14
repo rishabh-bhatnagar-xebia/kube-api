@@ -3,21 +3,22 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
-	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func CreatePod(namespace, imageName string) error {
+func CreatePod(namespace, imageName, podName string) error {
 	if len(imageName) == 0 {
-		return errors.New("undefined image name")
+		return errors.New("image_name cannot be empty")
+	}
+
+	if len(podName) == 0 {
+		return errors.New("pod_name cannot be empty")
 	}
 
 	clientset, err := getClientSet()
@@ -27,13 +28,13 @@ func CreatePod(namespace, imageName string) error {
 
 	_, err = clientset.CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateContainerName(imageName),
+			Name:      podName,
 			Namespace: namespace,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  generateContainerName(imageName),
+					Name:  podName,
 					Image: imageName,
 				},
 			},
@@ -59,6 +60,10 @@ func ListPods(namespace string) ([]corev1.Pod, error) {
 }
 
 func StreamLogs(w http.ResponseWriter, namespace, podName string) error {
+	if len(podName) == 0 {
+		return errors.New("pod_name cannot be empty")
+	}
+
 	clientset, err := getClientSet()
 	if err != nil {
 		return err
@@ -120,8 +125,4 @@ func getClientSet() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	return clientset, nil
-}
-
-func generateContainerName(imageName string) string {
-	return fmt.Sprintf("%s-%s", strings.ReplaceAll(imageName, "/", "-"), uuid.New().String())
 }
