@@ -48,3 +48,12 @@ func FilterPodFields(pods []corev1.Pod) (ret []PodResponse) {
 	}
 	return
 }
+
+// getNamespace returns the input namespace if it is set,
+// otherwise returns a default one
+func getNamespace(namespace string) string {
+	if len(namespace) == 0 {
+		return DEFAULT_NAMESPACE
+	}
+	return namespace
+}
