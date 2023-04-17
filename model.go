@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -47,7 +48,7 @@ func (s *Server) ListPods(namespace string) ([]corev1.Pod, error) {
 	return pods.Items, nil
 }
 
-func (s *Server) StreamLogs(w http.ResponseWriter, namespace, podName string) error {
+func (s *Server) StreamLogs(w http.ResponseWriter, r *http.Request, namespace, podName string) error {
 	if len(podName) == 0 {
 		return errors.New("pod_name cannot be empty")
 	}
@@ -65,26 +66,32 @@ func (s *Server) StreamLogs(w http.ResponseWriter, namespace, podName string) er
 	defer stream.Close()
 
 	// write the logs to the client
-	return forwardStream(stream, w)
+	return relayStreamUsingWebSocket(stream, w, r)
 }
 
-// forwardStream reads the content from stream and forwards it to the
-// ResponseWriter at a buffer rate of 1MB per flush
-func forwardStream(stream io.ReadCloser, w http.ResponseWriter) error {
-	// flush the last fetched data to the request
-	f, ok := w.(http.Flusher)
-	if !ok {
-		return errors.New("streaming unsupported")
+func relayStreamUsingWebSocket(stream io.ReadCloser, w http.ResponseWriter, r *http.Request) error {
+	// upgrade HTTP request to WebSocket
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  WEBSOCKET_BUFFER_SIZE,
+		WriteBufferSize: WEBSOCKET_BUFFER_SIZE,
 	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return errors.New("Failed to upgrade connection: " + err.Error())
+	}
+	defer conn.Close()
 
-	buf := make([]byte, 1<<10) // todo: magic number can be exported to constants
+	// stream the logs from kubernetes to client
+	buf := make([]byte, WEBSOCKET_BUFFER_SIZE)
 	for {
+		// read from the kubernetes logs
 		n, err := stream.Read(buf)
 		if err != nil {
 			return err
 		}
-		_, err = w.Write(buf[0:n])
-		f.Flush()
+
+		// write to the client's websocket
+		err = conn.WriteMessage(websocket.TextMessage, buf[:n])
 		if err != nil {
 			return err
 		}

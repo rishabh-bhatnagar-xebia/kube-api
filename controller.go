@@ -49,7 +49,7 @@ func (s *Server) handleGetLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.StreamLogs(w, getNamespace(getLogsParams.Namespace), getLogsParams.PodName)
+	err = s.StreamLogs(w, r, getNamespace(getLogsParams.Namespace), getLogsParams.PodName)
 	if err != nil {
 		http.Error(w, Wrap(err), http.StatusInternalServerError)
 		return
